@@ -111,11 +111,11 @@ int display_process(intrace_t * intrace)
 
 		printf("\n\n");
 		if (intrace->isIPv6)
-			printf("%3s  %-41s  %-41s  %s\n", "#", "[src addr]", "[icmp src addr]",
-			       "[pkt type]");
+			printf("%3s  %-41s  %-41s %-41s %s\n", "#", "[src addr]", "[icmp src addr]",
+			       "[pkt type]", "[time]");
 		else
-			printf("%3s  %-17s  %-17s  %s\n", "#", "[src addr]", "[icmp src addr]",
-			       "[pkt type]");
+			printf("%3s  %-17s  %-17s %-17s %s\n", "#", "[src addr]", "[icmp src addr]",
+			       "[pkt type]", "[time]");
 
 		for (int i = 1; i <= intrace->maxhop; i++) {
 
@@ -147,11 +147,11 @@ int display_process(intrace_t * intrace)
 			}
 
 			if (intrace->isIPv6)
-				printf("%2d.  [%-39s]  [%-39s]  [%s]\n", i, ipPktAddr, icmpPktAddr,
-				       pktType);
+				printf("%2d.  [%-15s]  [%-15s]  [%-15s]  [%lu]\n", i, ipPktAddr, icmpPktAddr,
+				       pktType, intrace->listener.time[i]);
 			else
-				printf("%2d.  [%-15.15s]  [%-15.15s]  [%s]\n", i, ipPktAddr,
-				       icmpPktAddr, pktType);
+				printf("%2d.  [%-15s]  [%-15s]  [%-15s] [%lu]\n", i, ipPktAddr,
+				       icmpPktAddr, pktType, intrace->listener.time[i]);
 		}
 
 		if (display_selectInput() > 0) {

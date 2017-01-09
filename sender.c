@@ -40,6 +40,7 @@
 #include <netinet/tcp.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <time.h>
 
 #include "intrace.h"
 
@@ -49,6 +50,9 @@ static void sender_process(intrace_t * intrace)
 		while (pthread_mutex_lock(&intrace->mutex)) ;
 
 		if ((intrace->cnt > 0) && (intrace->cnt < MAX_HOPS)) {
+
+            struct timespec start, end;
+            clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
 			if (intrace->isIPv6) {
 				ipv6_sendpkt(intrace, -1, -1);
@@ -61,6 +65,9 @@ static void sender_process(intrace_t * intrace)
 				ipv4_sendpkt(intrace, 0, -1);
 				ipv4_sendpkt(intrace, 0, 0);
 			}
+
+            clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+            intrace->listener.time[intrace->cnt - 1] = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
 
 			intrace->cnt++;
 		}
