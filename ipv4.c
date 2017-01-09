@@ -39,6 +39,7 @@
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <net/if.h>
+#include <time.h>
 
 #include "intrace.h"
 
@@ -201,6 +202,12 @@ void ipv4_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 		   && intrace->cnt && intrace->cnt < MAX_HOPS) {
 
 		int hop = intrace->cnt - 1;
+        if(intrace->listener.time[hop] == 0) {
+            struct timespec end;
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            uint64_t start = intrace->listener.start_time[hop];
+            intrace->listener.time[hop] = ((end.tv_sec) * 1000000 + (end.tv_nsec) / 1000) - start;
+        }
 		intrace->listener.proto[hop] = IPPROTO_TCP;
 		memcpy(&intrace->listener.ip_trace[hop].s_addr, &pkt->iph.ip_src,
 		       sizeof(pkt->iph.ip_src));
@@ -215,6 +222,12 @@ void ipv4_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 		   && intrace->cnt < MAX_HOPS) {
 
 		int hop = intrace->cnt - 1;
+        if(intrace->listener.time[hop] == 0) {
+            struct timespec end;
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            uint64_t start = intrace->listener.start_time[hop];
+            intrace->listener.time[hop] = ((end.tv_sec) * 1000000 + (end.tv_nsec) / 1000) - start;
+        }
 		memcpy(&intrace->listener.ip_trace[hop].s_addr, &pkt->iph.ip_src,
 		       sizeof(pkt->iph.ip_src));
 		intrace->listener.proto[hop] = -1;
@@ -288,6 +301,12 @@ void ipv4_icmp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 	icmp4bdy_t *pkticmp =
 	    (icmp4bdy_t *) ((uint8_t *) & pkt->iph + ((uint32_t) pkt->iph.ip_hl * 4));
 
+    if(intrace->listener.time[id] == 0) {
+        struct timespec end;
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        uint64_t start = intrace->listener.start_time[id];
+        intrace->listener.time[id] = ((end.tv_sec) * 1000000 + (end.tv_nsec) / 1000) - start;
+    }
 	memcpy(&intrace->listener.ip_trace[id].s_addr, &pkt->iph.ip_src, sizeof(pkt->iph.ip_src));
 	memcpy(&intrace->listener.icmp_trace[id].s_addr, &pkticmp->iph.ip_dst,
 	       sizeof(pkticmp->iph.ip_dst));

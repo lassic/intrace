@@ -42,7 +42,6 @@
 #include <netinet/tcp.h>
 #include <net/if.h>
 #include <arpa/inet.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "intrace.h"
@@ -214,6 +213,12 @@ void ipv6_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 		   && intrace->cnt && intrace->cnt < MAX_HOPS) {
 
 		int hop = intrace->cnt - 1;
+        if(intrace->listener.time[hop] == 0) {
+            struct timespec end;
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            uint64_t start = intrace->listener.start_time[hop];
+            intrace->listener.time[hop] = ((end.tv_sec) * 1000000 + (end.tv_nsec) / 1000) - start;
+        }
 		intrace->listener.proto[hop] = IPPROTO_TCP;
 		memcpy(intrace->listener.ip_trace6[hop].s6_addr,
 		       src.s6_addr, sizeof(intrace->listener.ip_trace6[hop].s6_addr));
@@ -229,6 +234,12 @@ void ipv6_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 
 		int hop = intrace->cnt - 1;
 
+        if(intrace->listener.time[hop] == 0) {
+            struct timespec end;
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            uint64_t start = intrace->listener.start_time[hop];
+            intrace->listener.time[hop] = ((end.tv_sec) * 1000000 + (end.tv_nsec) / 1000) - start;
+        }
 		memcpy(intrace->listener.ip_trace6[hop].s6_addr, src.s6_addr, sizeof(src.s6_addr));
 
 		intrace->listener.proto[hop] = -1;
@@ -293,6 +304,12 @@ void ipv6_icmp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 		return;
 	}
 
+    if(intrace->listener.time[id] == 0) {
+        struct timespec end;
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        uint64_t start = intrace->listener.start_time[id];
+        intrace->listener.time[id] = ((end.tv_sec) * 1000000 + (end.tv_nsec) / 1000) - start;
+    }
 	memcpy(intrace->listener.ip_trace6[id].s6_addr, src.s6_addr, sizeof(src.s6_addr));
 	memcpy(intrace->listener.icmp_trace6[id].s6_addr, pkt->iph.ip6_dst.s6_addr,
 	       sizeof(pkt->iph.ip6_dst.s6_addr));

@@ -51,8 +51,9 @@ static void sender_process(intrace_t * intrace)
 
 		if ((intrace->cnt > 0) && (intrace->cnt < MAX_HOPS)) {
 
-            struct timespec start, end;
-            clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+            struct timespec start;
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            intrace->listener.start_time[intrace->cnt] = (start.tv_sec) * 1000000 + (start.tv_nsec) / 1000;
 
 			if (intrace->isIPv6) {
 				ipv6_sendpkt(intrace, -1, -1);
@@ -66,8 +67,6 @@ static void sender_process(intrace_t * intrace)
 				ipv4_sendpkt(intrace, 0, 0);
 			}
 
-            clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-            intrace->listener.time[intrace->cnt - 1] = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
 
 			intrace->cnt++;
 		}

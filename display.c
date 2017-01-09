@@ -147,10 +147,10 @@ int display_process(intrace_t * intrace)
 			}
 
 			if (intrace->isIPv6)
-				printf("%2d.  [%-15s]  [%-15s]  [%-15s]  [%lu]\n", i, ipPktAddr, icmpPktAddr,
+				printf("%2d.  [%-39s]  [%-39s]  [%-39s]  [%lu]\n", i, ipPktAddr, icmpPktAddr,
 				       pktType, intrace->listener.time[i]);
 			else
-				printf("%2d.  [%-15s]  [%-15s]  [%-15s] [%lu]\n", i, ipPktAddr,
+				printf("%2d.  [%-15.15s]  [%-15.15s]  [%-15.15s] [%lu]\n", i, ipPktAddr,
 				       icmpPktAddr, pktType, intrace->listener.time[i]);
 		}
 

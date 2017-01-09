@@ -57,6 +57,7 @@ typedef struct {
 		struct in6_addr icmp_trace6[MAX_HOPS + 1];
 		int16_t proto[MAX_HOPS + 1];
         uint64_t time[MAX_HOPS + 1];
+        uint64_t start_time[MAX_HOPS + 1];
 	} listener;
 
 	struct {
