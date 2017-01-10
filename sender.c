@@ -32,7 +32,6 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in_systm.h>
 #include <netinet/in.h>
@@ -40,8 +39,8 @@
 #include <netinet/tcp.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
-#include <time.h>
 
+#include "timestamp.h"
 #include "intrace.h"
 
 static void sender_process(intrace_t * intrace)
@@ -51,9 +50,7 @@ static void sender_process(intrace_t * intrace)
 
 		if ((intrace->cnt > 0) && (intrace->cnt < MAX_HOPS)) {
 
-            struct timespec start;
-            clock_gettime(CLOCK_MONOTONIC, &start);
-            intrace->listener.start_time[intrace->cnt] = (start.tv_sec) * 1000000 + (start.tv_nsec) / 1000;
+            intrace->listener.start_time[intrace->cnt] = get_timestamp();
 
 			if (intrace->isIPv6) {
 				ipv6_sendpkt(intrace, -1, -1);

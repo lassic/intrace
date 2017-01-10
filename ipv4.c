@@ -41,6 +41,7 @@
 #include <net/if.h>
 #include <time.h>
 
+#include "timestamp.h"
 #include "intrace.h"
 
 static inline unsigned short ipv4_cksum_tcp(u_int16_t * h, u_int16_t * d, int dlen)
@@ -203,10 +204,8 @@ void ipv4_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 
 		int hop = intrace->cnt - 1;
         if(intrace->listener.time[hop] == 0) {
-            struct timespec end;
-            clock_gettime(CLOCK_MONOTONIC, &end);
             uint64_t start = intrace->listener.start_time[hop];
-            intrace->listener.time[hop] = ((end.tv_sec) * 1000000 + (end.tv_nsec) / 1000) - start;
+            intrace->listener.time[hop] = get_timestamp() - start;
         }
 		intrace->listener.proto[hop] = IPPROTO_TCP;
 		memcpy(&intrace->listener.ip_trace[hop].s_addr, &pkt->iph.ip_src,
@@ -223,10 +222,8 @@ void ipv4_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 
 		int hop = intrace->cnt - 1;
         if(intrace->listener.time[hop] == 0) {
-            struct timespec end;
-            clock_gettime(CLOCK_MONOTONIC, &end);
             uint64_t start = intrace->listener.start_time[hop];
-            intrace->listener.time[hop] = ((end.tv_sec) * 1000000 + (end.tv_nsec) / 1000) - start;
+            intrace->listener.time[hop] = get_timestamp() - start;
         }
 		memcpy(&intrace->listener.ip_trace[hop].s_addr, &pkt->iph.ip_src,
 		       sizeof(pkt->iph.ip_src));
@@ -302,10 +299,8 @@ void ipv4_icmp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 	    (icmp4bdy_t *) ((uint8_t *) & pkt->iph + ((uint32_t) pkt->iph.ip_hl * 4));
 
     if(intrace->listener.time[id] == 0) {
-        struct timespec end;
-        clock_gettime(CLOCK_MONOTONIC, &end);
         uint64_t start = intrace->listener.start_time[id];
-        intrace->listener.time[id] = ((end.tv_sec) * 1000000 + (end.tv_nsec) / 1000) - start;
+        intrace->listener.time[id] = get_timestamp() - start;
     }
 	memcpy(&intrace->listener.ip_trace[id].s_addr, &pkt->iph.ip_src, sizeof(pkt->iph.ip_src));
 	memcpy(&intrace->listener.icmp_trace[id].s_addr, &pkticmp->iph.ip_dst,

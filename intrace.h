@@ -28,6 +28,8 @@ enum fMode {
 typedef struct {
 	pthread_mutex_t mutex;
 
+    char suppressPrint;
+
 	char *hostname;
 	uint16_t port;
 	size_t paylSz;

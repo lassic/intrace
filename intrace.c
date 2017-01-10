@@ -43,12 +43,13 @@ int main(int argc, char **argv)
 
 	bzero(&intrace, sizeof(intrace_t));
 	intrace.paylSz = 1;
+    intrace.suppressPrint = 0;
 	intrace.familyMode = ANY;
 
 	printf(INTRACE_NAME ", version " INTRACE_VERSION " " INTRACE_AUTHORS "\n");
 
 	for (;;) {
-		c = getopt(argc, argv, "h:p:d:s:46");
+		c = getopt(argc, argv, "h:p:d:s:46:u");
 		if (c < 0)
 			break;
 
@@ -71,6 +72,8 @@ int main(int argc, char **argv)
 		case '6':
 			intrace.familyMode = IPV6;
 			break;
+        case 'u':
+            intrace.suppressPrint = 1;
 		default:
 			break;
 		}

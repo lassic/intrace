@@ -28,7 +28,7 @@ LD ?= $(CC)
 LDFLAGS += $(COMMON_LDFLAGS)
 
 SRCS = debug.c intrace.c threads.c listener.c \
-       sender.c display.c ipv4.c ipv6.c
+       sender.c display.c ipv4.c ipv6.c timestamp.c
 
 OBJS = $(SRCS:.c=.o)
 BIN = intrace
