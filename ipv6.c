@@ -27,7 +27,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -42,17 +42,10 @@
 #include <netinet/tcp.h>
 #include <net/if.h>
 #include <arpa/inet.h>
-#include <stdio.h>
-
 #include <stdlib.h>
 
-#include <intrace.h>
-
-#undef in6_pktinfo
-struct in6_pktinfo {
-	struct in6_addr ipi6_addr;	/* src/dst IPv6 address */
-	unsigned int ipi6_ifindex;	/* send/recv interface index */
-};
+#include "timestamp.h"
+#include "intrace.h"
 
 static uint16_t in_cksum(const uint16_t * addr, uint32_t len, uint32_t csum)
 {
@@ -186,7 +179,8 @@ static bool ipv6_extract_srcdst(intrace_t * intrace, struct msghdr *msg, struct 
 	return false;
 }
 
-static inline int ipv6_checkTcp(intrace_t * intrace, struct tcphdr *pkt, uint32_t pktlen)
+static inline int ipv6_checkTcp(intrace_t * intrace UNUSED, struct tcphdr *pkt UNUSED,
+				uint32_t pktlen)
 {
 	if (pktlen < sizeof(struct tcphdr))
 		return errPkt;
@@ -220,6 +214,10 @@ void ipv6_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 		   && intrace->cnt && intrace->cnt < MAX_HOPS) {
 
 		int hop = intrace->cnt - 1;
+        if(intrace->listener.time[hop] == 0) {
+            uint64_t start = intrace->listener.start_time[hop];
+            intrace->listener.time[hop] = get_timestamp() - start;
+        }
 		intrace->listener.proto[hop] = IPPROTO_TCP;
 		memcpy(intrace->listener.ip_trace6[hop].s6_addr,
 		       src.s6_addr, sizeof(intrace->listener.ip_trace6[hop].s6_addr));
@@ -235,6 +233,10 @@ void ipv6_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 
 		int hop = intrace->cnt - 1;
 
+        if(intrace->listener.time[hop] == 0) {
+            uint64_t start = intrace->listener.start_time[hop];
+            intrace->listener.time[hop] = get_timestamp() - start;
+        }
 		memcpy(intrace->listener.ip_trace6[hop].s6_addr, src.s6_addr, sizeof(src.s6_addr));
 
 		intrace->listener.proto[hop] = -1;
@@ -299,6 +301,10 @@ void ipv6_icmp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 		return;
 	}
 
+    if(intrace->listener.time[id] == 0) {
+        uint64_t start = intrace->listener.start_time[id];
+        intrace->listener.time[id] = get_timestamp() - start;
+    }
 	memcpy(intrace->listener.ip_trace6[id].s6_addr, src.s6_addr, sizeof(src.s6_addr));
 	memcpy(intrace->listener.icmp_trace6[id].s6_addr, pkt->iph.ip6_dst.s6_addr,
 	       sizeof(pkt->iph.ip6_dst.s6_addr));

@@ -22,7 +22,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <unistd.h>
 #include <stdio.h>
@@ -36,7 +36,10 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
-#include <intrace.h>
+#include "intrace.h"
+
+static int previousHop = 1;
+static int hasRun = 0;
 
 static inline int display_selectInput(void)
 {
@@ -79,11 +82,30 @@ static inline void display_cursPos(unsigned int x, unsigned int y)
 
 int display_process(intrace_t * intrace)
 {
-	display_disableScroll();
-	display_clr();
+    if(!intrace->suppressPrint) {
+        display_disableScroll();
+        display_clr();
+    } else {
+		/* Lock mutex */
+		while (pthread_mutex_lock(&intrace->mutex)) ;
+
+        printf("=========================[ %s %s ]========================\n", INTRACE_NAME, INTRACE_VERSION);
+        if (intrace->isIPv6)
+            printf("%3s  %-41s  %-41s %-41s %s\n", "#", "[src addr]", "[icmp src addr]",
+                   "[pkt type]", "[time]");
+        else
+            printf("%3s  %-17s  %-17s %-17s %s\n", "#", "[src addr]", "[icmp src addr]",
+                   "[pkt type]", "[time]");
+
+
+		/* UnLock mutex */
+		while (pthread_mutex_unlock(&intrace->mutex)) ;
+    }
 
 	for (;;) {
-		display_cursPos(0, 0);
+        if(!intrace->suppressPrint) {
+            display_cursPos(0, 0);
+        }
 
 		/* Lock mutex */
 		while (pthread_mutex_lock(&intrace->mutex)) ;
@@ -92,32 +114,35 @@ int display_process(intrace_t * intrace)
 		inet_ntop(_IT_AF(intrace), _IT_LIP(intrace), locAddr, sizeof(locAddr));
 		inet_ntop(_IT_AF(intrace), _IT_RIP(intrace), rmtAddr, sizeof(rmtAddr));
 
-		printf("%s %s -- R: %s/%d (%d) L: %s/%d\n", INTRACE_NAME,
-		       INTRACE_VERSION, rmtAddr, intrace->rport, intrace->port ? intrace->port : 0,
-		       locAddr, intrace->lport);
+        if (intrace->cnt >= MAX_HOPS)
+            intrace->cnt = 0;
 
-		printf("Payload Size: %u bytes, Seq: 0x%08x, Ack: 0x%08x\n", intrace->paylSz,
-		       intrace->seq, intrace->ack);
+        if(!intrace->suppressPrint) {
+            printf("=========================[ %s %s ]========================\n", INTRACE_NAME, INTRACE_VERSION);
 
-		if (intrace->cnt >= MAX_HOPS)
-			intrace->cnt = 0;
+            printf("Remote: %s/%d (%d)\n", rmtAddr, intrace->rport, intrace->port ? intrace->port : 0);
+            printf("Local: %s/%d\n", locAddr, intrace->lport);
+            printf("Payload Size: %zu bytes, Seq: 0x%08x, Ack: 0x%08x\n", intrace->paylSz,
+                   intrace->seq, intrace->ack);
 
-		if (!intrace->seq)
-			printf("%-75s", "Status: Sniffing for connection packets");
-		else if (!intrace->cnt)
-			printf("%-75s", "Status: Press ENTER");
-		else
-			printf("Status: Packets sent #%-50d", intrace->cnt - 1);
+            if (!intrace->seq)
+                printf("%-75s", "Status: Sniffing for connection packets");
+            else if (!intrace->cnt)
+                printf("%-75s", "Status: Press ENTER");
+            else
+                printf("Status: Packets sent #%-50d", intrace->cnt - 1);
 
-		printf("\n\n");
-		if (intrace->isIPv6)
-			printf("%3s  %-41s  %-41s  %s\n", "#", "[src addr]", "[icmp src addr]",
-			       "[pkt type]");
-		else
-			printf("%3s  %-17s  %-17s  %s\n", "#", "[src addr]", "[icmp src addr]",
-			       "[pkt type]");
+            printf("\n\n");
+            if (intrace->isIPv6)
+                printf("%3s  %-41s  %-41s %-41s %s\n", "#", "[src addr]", "[icmp src addr]",
+                       "[pkt type]", "[time]");
+            else
+                printf("%3s  %-17s  %-17s %-17s %s\n", "#", "[src addr]", "[icmp src addr]",
+                       "[pkt type]", "[time]");
 
-		for (int i = 1; i <= intrace->maxhop; i++) {
+        }
+
+		for (int i = (intrace->suppressPrint? previousHop : 1); i <= intrace->maxhop; i++, previousHop++) {
 
 			const char *pktType = "NO REPLY";
 
@@ -147,17 +172,22 @@ int display_process(intrace_t * intrace)
 			}
 
 			if (intrace->isIPv6)
-				printf("%2d.  [%-39s]  [%-39s]  [%s]\n", i, ipPktAddr, icmpPktAddr,
-				       pktType);
+				printf("%2d.  [%-39s]  [%-39s]  [%-39s]  [%lu]\n", i, ipPktAddr, icmpPktAddr,
+				       pktType, intrace->listener.time[i]);
 			else
-				printf("%2d.  [%-15.15s]  [%-15.15s]  [%s]\n", i, ipPktAddr,
-				       icmpPktAddr, pktType);
+				printf("%2d.  [%-15.15s]  [%-15.15s]  [%-15.15s] [%lu]\n", i, ipPktAddr,
+				       icmpPktAddr, pktType, intrace->listener.time[i]);
 		}
 
-		if (display_selectInput() > 0) {
+		if (intrace->suppressPrint || display_selectInput() > 0) {
 			if (!intrace->cnt && intrace->seq) {
+                if(hasRun) {
+                    exit(0);
+                }
+
 				intrace->cnt = 1;
 				intrace->maxhop = 0;
+                hasRun = 1;
 				bzero(intrace->listener.ip_trace,
 				      sizeof(intrace->listener.ip_trace));
 				bzero(intrace->listener.ip_trace6,
@@ -166,7 +196,9 @@ int display_process(intrace_t * intrace)
 				      sizeof(intrace->listener.icmp_trace));
 				bzero(intrace->listener.icmp_trace6,
 				      sizeof(intrace->listener.icmp_trace6));
-				display_clr();
+
+                if(!intrace->suppressPrint)
+                    display_clr();
 			}
 		}
 

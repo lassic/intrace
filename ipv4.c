@@ -27,7 +27,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <errno.h>
 #include <string.h>
@@ -39,8 +39,10 @@
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <net/if.h>
+#include <time.h>
 
-#include <intrace.h>
+#include "timestamp.h"
+#include "intrace.h"
 
 static inline unsigned short ipv4_cksum_tcp(u_int16_t * h, u_int16_t * d, int dlen)
 {
@@ -168,7 +170,7 @@ void ipv4_sendpkt(intrace_t * intrace, int seqSkew, int ackSkew)
 	       sizeof(struct sockaddr));
 }
 
-static inline int ipv4_checkTcp(intrace_t * intrace, ip4pkt_t * pkt, uint32_t pktlen)
+static inline int ipv4_checkTcp(intrace_t * intrace UNUSED, ip4pkt_t * pkt, uint32_t pktlen)
 {
 	if (pktlen < sizeof(struct ip))
 		return errPkt;
@@ -201,6 +203,10 @@ void ipv4_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 		   && intrace->cnt && intrace->cnt < MAX_HOPS) {
 
 		int hop = intrace->cnt - 1;
+        if(intrace->listener.time[hop] == 0) {
+            uint64_t start = intrace->listener.start_time[hop];
+            intrace->listener.time[hop] = get_timestamp() - start;
+        }
 		intrace->listener.proto[hop] = IPPROTO_TCP;
 		memcpy(&intrace->listener.ip_trace[hop].s_addr, &pkt->iph.ip_src,
 		       sizeof(pkt->iph.ip_src));
@@ -215,6 +221,10 @@ void ipv4_tcp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 		   && intrace->cnt < MAX_HOPS) {
 
 		int hop = intrace->cnt - 1;
+        if(intrace->listener.time[hop] == 0) {
+            uint64_t start = intrace->listener.start_time[hop];
+            intrace->listener.time[hop] = get_timestamp() - start;
+        }
 		memcpy(&intrace->listener.ip_trace[hop].s_addr, &pkt->iph.ip_src,
 		       sizeof(pkt->iph.ip_src));
 		intrace->listener.proto[hop] = -1;
@@ -288,6 +298,10 @@ void ipv4_icmp_sock_ready(intrace_t * intrace, struct msghdr *msg)
 	icmp4bdy_t *pkticmp =
 	    (icmp4bdy_t *) ((uint8_t *) & pkt->iph + ((uint32_t) pkt->iph.ip_hl * 4));
 
+    if(intrace->listener.time[id] == 0) {
+        uint64_t start = intrace->listener.start_time[id];
+        intrace->listener.time[id] = get_timestamp() - start;
+    }
 	memcpy(&intrace->listener.ip_trace[id].s_addr, &pkt->iph.ip_src, sizeof(pkt->iph.ip_src));
 	memcpy(&intrace->listener.icmp_trace[id].s_addr, &pkticmp->iph.ip_dst,
 	       sizeof(pkticmp->iph.ip_dst));

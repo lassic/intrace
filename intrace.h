@@ -28,9 +28,11 @@ enum fMode {
 typedef struct {
 	pthread_mutex_t mutex;
 
+    char suppressPrint;
+
 	char *hostname;
 	uint16_t port;
-	unsigned int paylSz;
+	size_t paylSz;
 
 	struct in_addr rip;
 	struct in_addr lip;
@@ -56,6 +58,8 @@ typedef struct {
 		struct in6_addr ip_trace6[MAX_HOPS + 1];
 		struct in6_addr icmp_trace6[MAX_HOPS + 1];
 		int16_t proto[MAX_HOPS + 1];
+        uint64_t time[MAX_HOPS + 1];
+        uint64_t start_time[MAX_HOPS + 1];
 	} listener;
 
 	struct {
