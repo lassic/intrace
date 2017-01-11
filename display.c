@@ -39,6 +39,7 @@
 #include "intrace.h"
 
 static int previousHop = 1;
+static int hasRun = 0;
 
 static inline int display_selectInput(void)
 {
@@ -95,6 +96,7 @@ int display_process(intrace_t * intrace)
         else
             printf("%3s  %-17s  %-17s %-17s %s\n", "#", "[src addr]", "[icmp src addr]",
                    "[pkt type]", "[time]");
+
 
 		/* UnLock mutex */
 		while (pthread_mutex_unlock(&intrace->mutex)) ;
@@ -177,10 +179,15 @@ int display_process(intrace_t * intrace)
 				       icmpPktAddr, pktType, intrace->listener.time[i]);
 		}
 
-		if (display_selectInput() > 0) {
+		if (intrace->suppressPrint || display_selectInput() > 0) {
 			if (!intrace->cnt && intrace->seq) {
+                if(hasRun) {
+                    exit(0);
+                }
+
 				intrace->cnt = 1;
 				intrace->maxhop = 0;
+                hasRun = 1;
 				bzero(intrace->listener.ip_trace,
 				      sizeof(intrace->listener.ip_trace));
 				bzero(intrace->listener.ip_trace6,
